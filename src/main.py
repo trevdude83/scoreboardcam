@@ -162,10 +162,10 @@ def run_continuous(config: AppConfig) -> None:
             camera.release()
 
 
-def require_device(config: AppConfig) -> AppConfig:
+def require_device(config: AppConfig):
     require_config(config.device.device_id, "device.deviceId")
     require_config(config.device.device_key, "device.deviceKey")
-    return config
+    return config.device
 
 
 def select_best_frames(frames: List[bytes], confidences: List[float], max_images: int) -> List[bytes]:
