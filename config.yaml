@@ -1,0 +1,40 @@
+server:
+  baseUrl: "http://localhost:3001"
+device:
+  deviceId: ""
+  deviceKey: ""
+  authHeaderMode: "x-device-key"
+camera:
+  index: 0
+  width: 1280
+  height: 720
+  fps: 15
+  rotateDegrees: 0
+  crop:
+    enabled: false
+    x: 0
+    y: 0
+    w: 1280
+    h: 720
+detector:
+  enabled: false
+  modelPath: "models/scoreboard_detector.tflite"
+  labelsPath: "models/labels.txt"
+  scoreboardLabel: "scoreboard_end_match"
+  threshold: 0.80
+  requiredHits: 8
+  windowSize: 10
+  cooldownSeconds: 75
+upload:
+  maxImages: 3
+  jpegQuality: 85
+  processAfterUpload: true
+polling:
+  contextSeconds: 10
+logging:
+  level: "INFO"
+localServer:
+  enabled: true
+  port: 5055
+spool:
+  path: "spool"

@@ -1,0 +1,14 @@
+[Unit]
+Description=RocketSessions ScoreboardCam
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/rocketsessions-scoreboardcam
+ExecStart=/usr/bin/python3 -m src.main run --config /opt/rocketsessions-scoreboardcam/config.yaml
+Restart=on-failure
+User=pi
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

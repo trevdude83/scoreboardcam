@@ -1,0 +1,6 @@
+opencv-python
+requests
+pyyaml
+flask
+pillow
+tflite-runtime
