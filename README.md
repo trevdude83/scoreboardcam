@@ -46,6 +46,12 @@ python -m src.main capture
 python -m src.main run
 ```
 
+Open a live preview in your browser (for camera positioning/crop):
+
+```
+http://<pi-ip>:5055/preview
+```
+
 ## Configuration
 
 Edit `config.yaml`:

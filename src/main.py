@@ -121,7 +121,11 @@ def run_continuous(config: AppConfig) -> None:
     poll_thread.start()
 
     if config.local_server.enabled:
-        start_local_server(config.local_server.port, lambda: capture_and_upload(camera, client, config, state.get()))
+        start_local_server(
+            config.local_server.port,
+            lambda: capture_and_upload(camera, client, config, state.get()),
+            lambda: camera.capture_jpeg(config.upload.jpeg_quality),
+        )
 
     if config.detector.enabled:
         detector = ScoreboardDetector(config.detector.model_path, config.detector.labels_path)
