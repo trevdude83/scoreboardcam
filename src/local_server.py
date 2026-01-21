@@ -164,11 +164,6 @@ def start_local_server(
       }
       frame.addEventListener("pointerdown", beginDrag);
       frame.addEventListener("pointermove", moveDrag);
-      frame.addEventListener("mousedown", (event) => {
-        if (event.button !== 0) return;
-        beginDrag(event);
-      });
-      window.addEventListener("mousemove", moveDrag);
       save.addEventListener("click", async () => {
         const payload = {
           enabled: enabled.checked,
