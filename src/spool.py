@@ -17,7 +17,8 @@ class SpoolItem:
 def save_to_spool(spool_dir: Path, image_bytes: bytes, metadata: Dict[str, object]) -> SpoolItem:
     spool_dir.mkdir(parents=True, exist_ok=True)
     stamp = int(time.time() * 1000)
-    image_path = spool_dir / f"scoreboard-{stamp}.jpg"
+    extension = str(metadata.get("format") or "jpg")
+    image_path = spool_dir / f"scoreboard-{stamp}.{extension}"
     meta_path = spool_dir / f"scoreboard-{stamp}.json"
     image_path.write_bytes(image_bytes)
     meta_path.write_text(json.dumps(metadata, indent=2))
@@ -33,7 +34,8 @@ def list_spool(spool_dir: Path) -> List[SpoolItem]:
             metadata = json.loads(meta_path.read_text())
         except json.JSONDecodeError:
             metadata = {}
-        image_name = meta_path.name.replace(".json", ".jpg")
+        extension = str(metadata.get("format") or "jpg")
+        image_name = meta_path.name.replace(".json", f".{extension}")
         image_path = spool_dir / image_name
         if image_path.exists():
             items.append(SpoolItem(image_path=image_path, meta_path=meta_path, metadata=metadata))

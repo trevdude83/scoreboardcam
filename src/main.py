@@ -55,9 +55,11 @@ def upload_images(
     config: AppConfig,
     images: List[bytes],
     session_id: Optional[int],
+    file_ext: str,
+    mime_type: str,
 ) -> None:
     captured_at = iso_now()
-    response = client.upload_images(images, session_id, captured_at)
+    response = client.upload_images(images, session_id, captured_at, file_ext, mime_type)
     ingest_id = response.get("ingestId")
     status = response.get("status")
     logging.info("Upload complete: ingestId=%s status=%s", ingest_id, status)
@@ -69,15 +71,20 @@ def upload_images(
 def capture_and_upload(camera: Camera, client: DeviceClient, config: AppConfig, session_id: Optional[int]) -> None:
     image_bytes = b""
     try:
-        image_bytes = camera.capture_jpeg(config.upload.jpeg_quality)
-        upload_images(client, config, [image_bytes], session_id)
+        image_bytes, ext, mime = camera.capture_image(config.upload.format, config.upload.jpeg_quality)
+        upload_images(client, config, [image_bytes], session_id, ext, mime)
     except Exception as exc:
         logging.error("Upload failed, spooling: %s", exc)
         if image_bytes:
             save_to_spool(
                 Path(config.spool.path),
                 image_bytes,
-                {"capturedAt": iso_now(), "sessionId": session_id, "error": str(exc)},
+                {
+                    "capturedAt": iso_now(),
+                    "sessionId": session_id,
+                    "format": config.upload.format,
+                    "error": str(exc),
+                },
             )
 
 
@@ -103,7 +110,9 @@ def run_flush_spool(config: AppConfig) -> None:
         session_id = item.metadata.get("sessionId")
         session_id_value = int(session_id) if isinstance(session_id, int) else None
         try:
-            upload_images(client, config, [item.image_path.read_bytes()], session_id_value)
+            ext = str(item.metadata.get("format") or "jpg")
+            mime = "image/png" if ext == "png" else "image/jpeg"
+            upload_images(client, config, [item.image_path.read_bytes()], session_id_value, ext, mime)
             delete_spool_item(item)
         except Exception as exc:
             logging.warning("Spool item failed: %s", exc)
@@ -143,7 +152,7 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
         start_local_server(
             config.local_server.port,
             lambda: capture_and_upload(camera, client, config, state.get()),
-            lambda: camera.capture_jpeg(config.upload.jpeg_quality, apply_crop=False),
+            lambda: camera.capture_image("jpg", config.upload.jpeg_quality, apply_crop=False)[0],
             preview_meta,
             update_crop,
         )
@@ -163,7 +172,7 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
             frame = camera.read().image
             result = detector.classify(frame)
             decision = debounce.update(result)
-            frame_bytes = encode_jpeg(frame, config.upload.jpeg_quality)
+            frame_bytes = encode_frame(frame, config.upload.format, config.upload.jpeg_quality)
             frame_buffer.append(frame_bytes)
             results_buffer.append(result.confidence)
             if len(frame_buffer) > config.detector.window_size:
@@ -173,7 +182,9 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
                 best_index = decision.best_index
                 best_frame = frame_buffer[best_index]
                 images = select_best_frames(frame_buffer, results_buffer, config.upload.max_images)
-                upload_images(client, config, images, state.get())
+                ext = "png" if config.upload.format == "png" else "jpg"
+                mime = "image/png" if ext == "png" else "image/jpeg"
+                upload_images(client, config, images, state.get(), ext, mime)
             time.sleep(1.0 / max(1, config.camera.fps))
     else:
         logging.info("Detector disabled. Press ENTER to capture, or use /capture endpoint.")
@@ -222,7 +233,14 @@ def select_best_frames(frames: List[bytes], confidences: List[float], max_images
     return picks
 
 
-def encode_jpeg(frame, quality: int) -> bytes:
+def encode_frame(frame, fmt: str, quality: int) -> bytes:
+    fmt_lower = fmt.lower()
+    if fmt_lower == "png":
+        encode_params = [int(cv2.IMWRITE_PNG_COMPRESSION), 3]
+        ok, buffer = cv2.imencode(".png", frame, encode_params)
+        if not ok:
+            raise RuntimeError("Failed to encode PNG frame.")
+        return buffer.tobytes()
     encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), int(quality)]
     ok, buffer = cv2.imencode(".jpg", frame, encode_params)
     if not ok:

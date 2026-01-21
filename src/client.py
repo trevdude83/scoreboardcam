@@ -38,11 +38,13 @@ class DeviceClient:
         images: List[bytes],
         session_id: Optional[int],
         captured_at: str,
+        file_ext: str = "jpg",
+        mime_type: str = "image/jpeg",
     ) -> Dict[str, object]:
         url = f"{self.base_url}/api/v1/scoreboard/ingest"
         files = []
         for index, image in enumerate(images):
-            files.append(("images", (f"scoreboard-{index + 1}.jpg", image, "image/jpeg")))
+            files.append(("images", (f"scoreboard-{index + 1}.{file_ext}", image, mime_type)))
         data: Dict[str, str] = {"capturedAt": captured_at, "deviceId": str(self.device.device_id)}
         if session_id:
             data["sessionId"] = str(session_id)

@@ -65,13 +65,24 @@ class Camera:
         frame = self._apply_crop(frame)
         return CameraFrame(image=frame)
 
-    def capture_jpeg(self, quality: int = 85, apply_crop: bool = True) -> bytes:
+    def capture_image(self, fmt: str, quality: int = 85, apply_crop: bool = True) -> tuple[bytes, str, str]:
         frame = self.read().image if apply_crop else self._read_raw()
+        return self._encode_image(frame, fmt, quality)
+
+    def _encode_image(self, frame: np.ndarray, fmt: str, quality: int) -> tuple[bytes, str, str]:
+        fmt_lower = fmt.lower()
+        if fmt_lower in ("png",):
+            encode_params = [int(cv2.IMWRITE_PNG_COMPRESSION), 3]
+            ok, buffer = cv2.imencode(".png", frame, encode_params)
+            if not ok:
+                raise RuntimeError("Failed to encode PNG frame.")
+            return buffer.tobytes(), "png", "image/png"
+
         encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), int(quality)]
         ok, buffer = cv2.imencode(".jpg", frame, encode_params)
         if not ok:
             raise RuntimeError("Failed to encode JPEG frame.")
-        return buffer.tobytes()
+        return buffer.tobytes(), "jpg", "image/jpeg"
 
     def release(self) -> None:
         if self.cap:

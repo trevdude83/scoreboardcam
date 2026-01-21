@@ -39,7 +39,8 @@ detector:
   cooldownSeconds: 75
 upload:
   maxImages: 3
-  jpegQuality: 85
+  jpegQuality: 95
+  format: "jpg"
   processAfterUpload: true
 polling:
   contextSeconds: 10

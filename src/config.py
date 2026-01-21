@@ -44,6 +44,7 @@ class DetectorConfig:
 class UploadConfig:
     max_images: int
     jpeg_quality: int
+    format: str
     process_after_upload: bool
 
 
@@ -143,9 +144,14 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         cooldown_seconds=int(detector.get("cooldownSeconds", 75)),
     )
 
+    format_value = str(upload.get("format", "jpg")).lower()
+    if format_value not in ("jpg", "jpeg", "png"):
+        format_value = "jpg"
+
     upload_cfg = UploadConfig(
         max_images=int(upload.get("maxImages", 3)),
         jpeg_quality=int(upload.get("jpegQuality", 85)),
+        format=format_value,
         process_after_upload=bool(upload.get("processAfterUpload", True)),
     )
 
