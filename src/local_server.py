@@ -39,8 +39,8 @@ def start_local_server(
       body { margin: 0; font-family: Arial, sans-serif; background: #0b0f1a; color: #fff; }
       header { padding: 12px 16px; background: #121a2e; font-size: 14px; }
       main { display: flex; justify-content: center; align-items: center; padding: 16px; }
-      .frame { position: relative; display: inline-block; }
-      img { max-width: 96vw; max-height: 90vh; border: 2px solid #23335a; display: block; }
+      .frame { position: relative; display: inline-block; touch-action: none; }
+      img { max-width: 96vw; max-height: 90vh; border: 2px solid #23335a; display: block; user-select: none; -webkit-user-drag: none; }
       .crop-box {
         position: absolute;
         border: 2px dashed #2bdc74;
@@ -84,6 +84,7 @@ def start_local_server(
       const meta = """ + meta_json + """;
       const crop = meta.crop || { enabled: false };
       const img = document.getElementById("preview");
+      img.draggable = false;
       const cropBox = document.getElementById("cropBox");
       const enabled = document.getElementById("enabled");
       const inputX = document.getElementById("x");
@@ -141,19 +142,15 @@ def start_local_server(
       }, 1000);
       function beginDrag(event) {
         if (!meta.width || !meta.height) return;
-        dragStart = { x: event.clientX, y: event.clientY };
-        frame.classList.add("dragging");
-        applyDrag(dragStart.x, dragStart.y, event.clientX, event.clientY);
-        if (event.pointerId !== undefined) {
-          frame.setPointerCapture(event.pointerId);
+        if (!dragStart) {
+          dragStart = { x: event.clientX, y: event.clientY };
+          frame.classList.add("dragging");
+          applyDrag(dragStart.x, dragStart.y, event.clientX, event.clientY);
+          if (event.pointerId !== undefined) {
+            frame.setPointerCapture(event.pointerId);
+          }
+          return;
         }
-      }
-      function moveDrag(event) {
-        if (!dragStart) return;
-        applyDrag(dragStart.x, dragStart.y, event.clientX, event.clientY);
-      }
-      function endDrag(event) {
-        if (!dragStart) return;
         applyDrag(dragStart.x, dragStart.y, event.clientX, event.clientY);
         dragStart = null;
         frame.classList.remove("dragging");
@@ -161,15 +158,17 @@ def start_local_server(
           frame.releasePointerCapture(event.pointerId);
         }
       }
+      function moveDrag(event) {
+        if (!dragStart) return;
+        applyDrag(dragStart.x, dragStart.y, event.clientX, event.clientY);
+      }
       frame.addEventListener("pointerdown", beginDrag);
       frame.addEventListener("pointermove", moveDrag);
-      frame.addEventListener("pointerup", endDrag);
       frame.addEventListener("mousedown", (event) => {
         if (event.button !== 0) return;
         beginDrag(event);
       });
       window.addEventListener("mousemove", moveDrag);
-      window.addEventListener("mouseup", endDrag);
       save.addEventListener("click", async () => {
         const payload = {
           enabled: enabled.checked,
