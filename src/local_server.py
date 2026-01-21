@@ -58,6 +58,7 @@ def start_local_server(
       .controls input { padding: 6px; border-radius: 6px; border: 1px solid #2b3c6a; background: #0b1224; color: #fff; }
       .controls button { grid-column: span 2; padding: 8px 12px; background: #2d6bff; border: none; color: #fff; border-radius: 6px; cursor: pointer; }
       .controls .toggle { display: flex; align-items: center; gap: 6px; }
+      .frame.dragging { cursor: crosshair; }
     </style>
   </head>
   <body>
@@ -90,6 +91,8 @@ def start_local_server(
       const inputW = document.getElementById("w");
       const inputH = document.getElementById("h");
       const save = document.getElementById("save");
+      const frame = document.querySelector(".frame");
+      let dragStart = null;
       function fillInputs() {
         enabled.checked = !!crop.enabled;
         inputX.value = crop.x ?? 0;
@@ -108,11 +111,42 @@ def start_local_server(
         cropBox.style.width = (crop.w / meta.width * 100) + "%";
         cropBox.style.height = (crop.h / meta.height * 100) + "%";
       }
+      function applyDrag(x1, y1, x2, y2) {
+        const imgRect = img.getBoundingClientRect();
+        const left = Math.max(0, Math.min(x1, x2) - imgRect.left);
+        const top = Math.max(0, Math.min(y1, y2) - imgRect.top);
+        const right = Math.min(imgRect.width, Math.max(x1, x2) - imgRect.left);
+        const bottom = Math.min(imgRect.height, Math.max(y1, y2) - imgRect.top);
+        const scaleX = meta.width / imgRect.width;
+        const scaleY = meta.height / imgRect.height;
+        crop.enabled = true;
+        crop.x = Math.round(left * scaleX);
+        crop.y = Math.round(top * scaleY);
+        crop.w = Math.max(1, Math.round((right - left) * scaleX));
+        crop.h = Math.max(1, Math.round((bottom - top) * scaleY));
+        fillInputs();
+        updateCrop();
+      }
       fillInputs();
       updateCrop();
       setInterval(() => {
         img.src = "/preview?t=" + Date.now();
       }, 1000);
+      frame.addEventListener("mousedown", (event) => {
+        if (!meta.width || !meta.height) return;
+        dragStart = { x: event.clientX, y: event.clientY };
+        frame.classList.add("dragging");
+      });
+      window.addEventListener("mousemove", (event) => {
+        if (!dragStart) return;
+        applyDrag(dragStart.x, dragStart.y, event.clientX, event.clientY);
+      });
+      window.addEventListener("mouseup", (event) => {
+        if (!dragStart) return;
+        applyDrag(dragStart.x, dragStart.y, event.clientX, event.clientY);
+        dragStart = null;
+        frame.classList.remove("dragging");
+      });
       save.addEventListener("click", async () => {
         const payload = {
           enabled: enabled.checked,
