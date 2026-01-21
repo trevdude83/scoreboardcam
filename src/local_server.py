@@ -139,23 +139,37 @@ def start_local_server(
       setInterval(() => {
         img.src = "/preview?t=" + Date.now();
       }, 1000);
-      frame.addEventListener("pointerdown", (event) => {
+      function beginDrag(event) {
         if (!meta.width || !meta.height) return;
         dragStart = { x: event.clientX, y: event.clientY };
         frame.classList.add("dragging");
-        frame.setPointerCapture(event.pointerId);
-      });
-      frame.addEventListener("pointermove", (event) => {
+        applyDrag(dragStart.x, dragStart.y, event.clientX, event.clientY);
+        if (event.pointerId !== undefined) {
+          frame.setPointerCapture(event.pointerId);
+        }
+      }
+      function moveDrag(event) {
         if (!dragStart) return;
         applyDrag(dragStart.x, dragStart.y, event.clientX, event.clientY);
-      });
-      frame.addEventListener("pointerup", (event) => {
+      }
+      function endDrag(event) {
         if (!dragStart) return;
         applyDrag(dragStart.x, dragStart.y, event.clientX, event.clientY);
         dragStart = null;
         frame.classList.remove("dragging");
-        frame.releasePointerCapture(event.pointerId);
+        if (event.pointerId !== undefined) {
+          frame.releasePointerCapture(event.pointerId);
+        }
+      }
+      frame.addEventListener("pointerdown", beginDrag);
+      frame.addEventListener("pointermove", moveDrag);
+      frame.addEventListener("pointerup", endDrag);
+      frame.addEventListener("mousedown", (event) => {
+        if (event.button !== 0) return;
+        beginDrag(event);
       });
+      window.addEventListener("mousemove", moveDrag);
+      window.addEventListener("mouseup", endDrag);
       save.addEventListener("click", async () => {
         const payload = {
           enabled: enabled.checked,
