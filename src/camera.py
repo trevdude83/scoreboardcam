@@ -18,6 +18,9 @@ class Camera:
     def __init__(self, config: CameraConfig) -> None:
         self.config = config
         self.cap = cv2.VideoCapture(config.index)
+        if config.format:
+            fourcc = cv2.VideoWriter_fourcc(*config.format)
+            self.cap.set(cv2.CAP_PROP_FOURCC, fourcc)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.height)
         self.cap.set(cv2.CAP_PROP_FPS, config.fps)

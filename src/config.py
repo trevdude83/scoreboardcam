@@ -22,6 +22,7 @@ class CameraConfig:
     width: int
     height: int
     fps: int
+    format: str
     rotate_degrees: int
     crop: CropConfig
 
@@ -124,6 +125,7 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         width=int(camera.get("width", 1280)),
         height=int(camera.get("height", 720)),
         fps=int(camera.get("fps", 15)),
+        format=str(camera.get("format", "MJPG")),
         rotate_degrees=int(camera.get("rotateDegrees", 0)),
         crop=crop_cfg,
     )
@@ -189,4 +191,3 @@ def require_config(value: str, label: str) -> str:
     if not value:
         raise ValueError(f"{label} is required in config.yaml")
     return value
-

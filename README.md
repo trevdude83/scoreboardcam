@@ -62,6 +62,7 @@ camera:
   width: 1280
   height: 720
   fps: 15
+  format: "MJPG"
   rotateDegrees: 0
   crop:
     enabled: false
