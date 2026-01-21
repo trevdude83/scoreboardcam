@@ -143,7 +143,7 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
         start_local_server(
             config.local_server.port,
             lambda: capture_and_upload(camera, client, config, state.get()),
-            lambda: camera.capture_jpeg(config.upload.jpeg_quality),
+            lambda: camera.capture_jpeg(config.upload.jpeg_quality, apply_crop=False),
             preview_meta,
             update_crop,
         )

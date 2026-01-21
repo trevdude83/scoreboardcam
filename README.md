@@ -46,7 +46,7 @@ python -m src.main capture
 python -m src.main run
 ```
 
-Open a live preview in your browser (for camera positioning/crop):
+Open a live preview in your browser (for camera positioning/crop). The preview now shows the full frame even when crop is enabled.
 
 ```
 http://<pi-ip>:5055/preview

@@ -65,8 +65,8 @@ class Camera:
         frame = self._apply_crop(frame)
         return CameraFrame(image=frame)
 
-    def capture_jpeg(self, quality: int = 85) -> bytes:
-        frame = self.read().image
+    def capture_jpeg(self, quality: int = 85, apply_crop: bool = True) -> bytes:
+        frame = self.read().image if apply_crop else self._read_raw()
         encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), int(quality)]
         ok, buffer = cv2.imencode(".jpg", frame, encode_params)
         if not ok:
@@ -102,3 +102,9 @@ class Camera:
         center = (w // 2, h // 2)
         matrix = cv2.getRotationMatrix2D(center, normalized, 1.0)
         return cv2.warpAffine(frame, matrix, (w, h))
+
+    def _read_raw(self) -> np.ndarray:
+        ok, frame = self.cap.read()
+        if not ok or frame is None:
+            raise RuntimeError("Failed to capture frame from camera.")
+        return self._apply_rotation(frame, self.config.rotate_degrees)
