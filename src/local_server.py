@@ -93,12 +93,13 @@ def start_local_server(
       const save = document.getElementById("save");
       const frame = document.querySelector(".frame");
       let dragStart = null;
+      let imageReady = false;
       function fillInputs() {
         enabled.checked = !!crop.enabled;
-        inputX.value = crop.x ?? 0;
-        inputY.value = crop.y ?? 0;
-        inputW.value = crop.w ?? meta.width ?? 0;
-        inputH.value = crop.h ?? meta.height ?? 0;
+        inputX.value = String(crop.x ?? 0);
+        inputY.value = String(crop.y ?? 0);
+        inputW.value = String(crop.w ?? meta.width ?? 0);
+        inputH.value = String(crop.h ?? meta.height ?? 0);
       }
       function updateCrop() {
         if (!crop.enabled || !meta.width || !meta.height) {
@@ -112,7 +113,9 @@ def start_local_server(
         cropBox.style.height = (crop.h / meta.height * 100) + "%";
       }
       function applyDrag(x1, y1, x2, y2) {
+        if (!imageReady) return;
         const imgRect = img.getBoundingClientRect();
+        if (!imgRect.width || !imgRect.height) return;
         const left = Math.max(0, Math.min(x1, x2) - imgRect.left);
         const top = Math.max(0, Math.min(y1, y2) - imgRect.top);
         const right = Math.min(imgRect.width, Math.max(x1, x2) - imgRect.left);
@@ -129,23 +132,29 @@ def start_local_server(
       }
       fillInputs();
       updateCrop();
+      img.addEventListener("load", () => {
+        imageReady = true;
+        updateCrop();
+      });
       setInterval(() => {
         img.src = "/preview?t=" + Date.now();
       }, 1000);
-      frame.addEventListener("mousedown", (event) => {
+      frame.addEventListener("pointerdown", (event) => {
         if (!meta.width || !meta.height) return;
         dragStart = { x: event.clientX, y: event.clientY };
         frame.classList.add("dragging");
+        frame.setPointerCapture(event.pointerId);
       });
-      window.addEventListener("mousemove", (event) => {
+      frame.addEventListener("pointermove", (event) => {
         if (!dragStart) return;
         applyDrag(dragStart.x, dragStart.y, event.clientX, event.clientY);
       });
-      window.addEventListener("mouseup", (event) => {
+      frame.addEventListener("pointerup", (event) => {
         if (!dragStart) return;
         applyDrag(dragStart.x, dragStart.y, event.clientX, event.clientY);
         dragStart = null;
         frame.classList.remove("dragging");
+        frame.releasePointerCapture(event.pointerId);
       });
       save.addEventListener("click", async () => {
         const payload = {
@@ -163,11 +172,7 @@ def start_local_server(
         if (res.ok) {
           const data = await res.json();
           meta.crop = data.crop;
-          crop.enabled = data.crop.enabled;
-          crop.x = data.crop.x;
-          crop.y = data.crop.y;
-          crop.w = data.crop.w;
-          crop.h = data.crop.h;
+          Object.assign(crop, data.crop);
           fillInputs();
           updateCrop();
         }
