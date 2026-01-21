@@ -52,6 +52,12 @@ Open a live preview in your browser (for camera positioning/crop):
 http://<pi-ip>:5055/preview
 ```
 
+Auto-refreshing preview page:
+
+```
+http://<pi-ip>:5055/preview.html
+```
+
 ## Configuration
 
 Edit `config.yaml`:
