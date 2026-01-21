@@ -109,7 +109,7 @@ def run_flush_spool(config: AppConfig) -> None:
             logging.warning("Spool item failed: %s", exc)
 
 
-def run_continuous(config: AppConfig) -> None:
+def run_continuous(config: AppConfig, config_path: str) -> None:
     client = DeviceClient(config.server, require_device(config))
     camera = Camera(config.camera)
     state = ContextState()
@@ -127,11 +127,25 @@ def run_continuous(config: AppConfig) -> None:
             "height": config.camera.height,
             "crop": asdict(config.camera.crop),
         }
+        def update_crop(data: dict) -> dict:
+            crop = config.camera.crop
+            if "enabled" in data:
+                crop.enabled = bool(data.get("enabled"))
+            for key in ("x", "y", "w", "h"):
+                if key in data:
+                    try:
+                        setattr(crop, key, int(data.get(key)))
+                    except (TypeError, ValueError):
+                        continue
+            write_crop_to_config(config_path, crop)
+            return asdict(crop)
+
         start_local_server(
             config.local_server.port,
             lambda: capture_and_upload(camera, client, config, state.get()),
             lambda: camera.capture_jpeg(config.upload.jpeg_quality),
             preview_meta,
+            update_crop,
         )
 
     if config.detector.enabled:
@@ -179,6 +193,26 @@ def require_device(config: AppConfig):
     return config.device
 
 
+def write_crop_to_config(config_path: str, crop) -> None:
+    try:
+        import yaml
+        from pathlib import Path
+        config_file = Path(config_path)
+        data = yaml.safe_load(config_file.read_text()) or {}
+        camera = data.get("camera", {})
+        camera["crop"] = {
+            "enabled": bool(crop.enabled),
+            "x": int(crop.x),
+            "y": int(crop.y),
+            "w": int(crop.w),
+            "h": int(crop.h),
+        }
+        data["camera"] = camera
+        config_file.write_text(yaml.safe_dump(data, sort_keys=False))
+    except Exception:
+        return
+
+
 def select_best_frames(frames: List[bytes], confidences: List[float], max_images: int) -> List[bytes]:
     if not frames:
         return []
@@ -210,7 +244,7 @@ def main() -> None:
     elif args.command == "flush-spool":
         run_flush_spool(config)
     else:
-        run_continuous(config)
+        run_continuous(config, args.config)
 
 
 if __name__ == "__main__":
