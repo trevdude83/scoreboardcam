@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import cv2
+import subprocess
 import numpy as np
 
 from .config import CameraConfig
@@ -24,6 +25,37 @@ class Camera:
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.height)
         self.cap.set(cv2.CAP_PROP_FPS, config.fps)
+        self._apply_controls()
+
+    def _apply_controls(self) -> None:
+        controls = self.config.controls or {}
+        control_map = {
+            "brightness": cv2.CAP_PROP_BRIGHTNESS,
+            "contrast": cv2.CAP_PROP_CONTRAST,
+            "saturation": cv2.CAP_PROP_SATURATION,
+            "hue": cv2.CAP_PROP_HUE,
+            "gamma": cv2.CAP_PROP_GAMMA,
+        }
+        for key, value in controls.items():
+            if key not in control_map and value is not None:
+                self._set_v4l2_control(key, value)
+        for key, value in controls.items():
+            if key in control_map:
+                try:
+                    self.cap.set(control_map[key], float(value))
+                except Exception:
+                    continue
+
+    def _set_v4l2_control(self, key: str, value: object) -> None:
+        try:
+            subprocess.run(
+                ["v4l2-ctl", "-d", f"/dev/video{self.config.index}", "-c", f"{key}={value}"],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            return
 
     def read(self) -> CameraFrame:
         ok, frame = self.cap.read()

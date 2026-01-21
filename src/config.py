@@ -23,6 +23,7 @@ class CameraConfig:
     height: int
     fps: int
     format: str
+    controls: Dict[str, Any]
     rotate_degrees: int
     crop: CropConfig
 
@@ -126,6 +127,7 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         height=int(camera.get("height", 720)),
         fps=int(camera.get("fps", 15)),
         format=str(camera.get("format", "MJPG")),
+        controls=dict(camera.get("controls", {})),
         rotate_degrees=int(camera.get("rotateDegrees", 0)),
         crop=crop_cfg,
     )

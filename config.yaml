@@ -10,6 +10,17 @@ camera:
   height: 720
   fps: 15
   format: "MJPG"
+  controls:
+    auto_exposure: 1
+    exposure_time_absolute: 400
+    sharpness: 8
+    contrast: 20
+    brightness: -10
+    saturation: 45
+    gamma: 100
+    white_balance_automatic: 1
+    white_balance_temperature: 4500
+    backlight_compensation: 0
   rotateDegrees: 0
   crop:
     enabled: false
