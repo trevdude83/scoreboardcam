@@ -58,6 +58,8 @@ Auto-refreshing preview page:
 http://<pi-ip>:5055/preview.html
 ```
 
+The preview page draws a dashed green crop box when `camera.crop.enabled` is true.
+
 ## Configuration
 
 Edit `config.yaml`:

@@ -4,6 +4,7 @@ import argparse
 import logging
 import threading
 import time
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
@@ -121,10 +122,16 @@ def run_continuous(config: AppConfig) -> None:
     poll_thread.start()
 
     if config.local_server.enabled:
+        preview_meta = {
+            "width": config.camera.width,
+            "height": config.camera.height,
+            "crop": asdict(config.camera.crop),
+        }
         start_local_server(
             config.local_server.port,
             lambda: capture_and_upload(camera, client, config, state.get()),
             lambda: camera.capture_jpeg(config.upload.jpeg_quality),
+            preview_meta,
         )
 
     if config.detector.enabled:
