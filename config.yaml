@@ -42,6 +42,14 @@ upload:
   jpegQuality: 95
   format: "jpg"
   processAfterUpload: true
+dataset:
+  path: "dataset"
+  sampleFps: 1
+  burstFps: 8
+  burstFrames: 12
+  saveFullFrame: true
+  fullFrameEveryN: 10
+  format: "png"
 polling:
   contextSeconds: 10
 logging:

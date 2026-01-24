@@ -8,3 +8,4 @@ spool/
 *.log
 config.local.yaml
 config.backup.yaml
+dataset/

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import threading
 import time
@@ -86,6 +87,113 @@ def capture_and_upload(camera: Camera, client: DeviceClient, config: AppConfig, 
                     "error": str(exc),
                 },
             )
+
+
+def save_dataset_item(
+    base_dir: Path,
+    kind: str,
+    index: int,
+    image_bytes: bytes,
+    ext: str,
+    metadata: dict,
+    suffix: str,
+) -> None:
+    date_folder = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    target_dir = base_dir / date_folder / kind
+    target_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    stem = f"{timestamp}_{kind}_{index}_{suffix}"
+    image_path = target_dir / f"{stem}.{ext}"
+    meta_path = target_dir / f"{stem}.json"
+    image_path.write_bytes(image_bytes)
+    meta_path.write_text(json.dumps(metadata, indent=2))
+
+
+def capture_dataset_sample(
+    camera: Camera,
+    config: AppConfig,
+    base_dir: Path,
+    index: int,
+    mode: str,
+    burst_index: Optional[int] = None,
+) -> None:
+    dataset_format = config.dataset.format
+    crop_meta = asdict(config.camera.crop)
+    meta = {
+        "capturedAt": iso_now(),
+        "mode": mode,
+        "index": index,
+        "burstIndex": burst_index,
+        "crop": crop_meta,
+        "camera": {
+            "width": config.camera.width,
+            "height": config.camera.height,
+            "fps": config.camera.fps,
+            "format": config.camera.format,
+        },
+        "format": dataset_format,
+    }
+
+    image_bytes, ext, _ = camera.capture_image(dataset_format, config.upload.jpeg_quality)
+    save_dataset_item(base_dir, mode, index, image_bytes, ext, meta, "roi")
+
+    if config.dataset.save_full_frame:
+        interval = max(1, config.dataset.full_frame_every_n)
+        if index % interval == 0:
+            full_bytes, full_ext, _ = camera.capture_image(dataset_format, config.upload.jpeg_quality, apply_crop=False)
+            full_meta = {**meta, "fullFrame": True}
+            save_dataset_item(base_dir, mode, index, full_bytes, full_ext, full_meta, "full")
+
+
+def run_collect(config: AppConfig) -> None:
+    camera = Camera(config.camera)
+    base_dir = Path(config.dataset.path)
+    sample_interval = 1.0 / max(1, config.dataset.sample_fps)
+    burst_interval = 1.0 / max(1, config.dataset.burst_fps)
+    burst_frames = max(1, config.dataset.burst_frames)
+
+    command_queue: List[str] = []
+    queue_lock = threading.Lock()
+
+    def input_loop() -> None:
+        while True:
+            command = input().strip().lower()
+            with queue_lock:
+                command_queue.append(command)
+
+    input_thread = threading.Thread(target=input_loop, daemon=True)
+    input_thread.start()
+
+    logging.info("Dataset capture started. Press 'b' then ENTER for a burst, 'q' to quit.")
+
+    index = 0
+    try:
+        while True:
+            now = time.time()
+            capture_dataset_sample(camera, config, base_dir, index, "sample")
+            index += 1
+
+            with queue_lock:
+                commands = command_queue[:]
+                command_queue.clear()
+
+            for cmd in commands:
+                if cmd in ("q", "quit", "exit"):
+                    logging.info("Stopping dataset capture.")
+                    return
+                if cmd in ("b", "burst"):
+                    logging.info("Burst capture triggered.")
+                    for burst_index in range(burst_frames):
+                        capture_dataset_sample(camera, config, base_dir, index, "burst", burst_index=burst_index)
+                        index += 1
+                        time.sleep(burst_interval)
+
+            elapsed = time.time() - now
+            sleep_for = sample_interval - elapsed
+            if sleep_for > 0:
+                time.sleep(sleep_for)
+    finally:
+        camera.release()
 
 
 def run_manual_capture(config: AppConfig) -> None:
@@ -250,7 +358,7 @@ def encode_frame(frame, fmt: str, quality: int) -> bytes:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="RocketSessions ScoreboardCam client")
-    parser.add_argument("command", choices=["capture", "run", "flush-spool"])
+    parser.add_argument("command", choices=["capture", "run", "flush-spool", "collect"])
     parser.add_argument("--config")
     args = parser.parse_args()
 
@@ -264,6 +372,8 @@ def main() -> None:
         run_manual_capture(config)
     elif args.command == "flush-spool":
         run_flush_spool(config)
+    elif args.command == "collect":
+        run_collect(config)
     else:
         run_continuous(config, config_path)
 

@@ -49,6 +49,17 @@ class UploadConfig:
 
 
 @dataclass
+class DatasetConfig:
+    path: str
+    sample_fps: int
+    burst_fps: int
+    burst_frames: int
+    save_full_frame: bool
+    full_frame_every_n: int
+    format: str
+
+
+@dataclass
 class PollingConfig:
     context_seconds: int
 
@@ -88,6 +99,7 @@ class AppConfig:
     camera: CameraConfig
     detector: DetectorConfig
     upload: UploadConfig
+    dataset: DatasetConfig
     polling: PollingConfig
     logging: LoggingConfig
     local_server: LocalServerConfig
@@ -108,6 +120,7 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
     camera = data.get("camera", {})
     detector = data.get("detector", {})
     upload = data.get("upload", {})
+    dataset = data.get("dataset", {})
     polling = data.get("polling", {})
     logging = data.get("logging", {})
     local_server = data.get("localServer", {})
@@ -155,6 +168,20 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         process_after_upload=bool(upload.get("processAfterUpload", True)),
     )
 
+    dataset_format = str(dataset.get("format", "png")).lower()
+    if dataset_format not in ("jpg", "jpeg", "png"):
+        dataset_format = "png"
+
+    dataset_cfg = DatasetConfig(
+        path=str(dataset.get("path", "dataset")),
+        sample_fps=int(dataset.get("sampleFps", 1)),
+        burst_fps=int(dataset.get("burstFps", 8)),
+        burst_frames=int(dataset.get("burstFrames", 12)),
+        save_full_frame=bool(dataset.get("saveFullFrame", True)),
+        full_frame_every_n=int(dataset.get("fullFrameEveryN", 10)),
+        format=dataset_format,
+    )
+
     polling_cfg = PollingConfig(
         context_seconds=int(polling.get("contextSeconds", 10)),
     )
@@ -188,6 +215,7 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         camera=camera_cfg,
         detector=detector_cfg,
         upload=upload_cfg,
+        dataset=dataset_cfg,
         polling=polling_cfg,
         logging=logging_cfg,
         local_server=local_server_cfg,

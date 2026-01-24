@@ -46,6 +46,16 @@ python -m src.main capture
 python -m src.main run --config config.local.yaml
 ```
 
+6) Capture a training dataset (optional):
+
+```
+python -m src.main collect --config config.local.yaml
+```
+
+During collection:
+- Press `b` + ENTER to capture a burst of frames.
+- Press `q` + ENTER to stop.
+
 Open a live preview in your browser (for camera positioning/crop). The preview now shows the full frame even when crop is enabled.
 
 ```
@@ -116,6 +126,14 @@ upload:
   maxImages: 3
   jpegQuality: 85
   processAfterUpload: true
+dataset:
+  path: "dataset"
+  sampleFps: 1
+  burstFps: 8
+  burstFrames: 12
+  saveFullFrame: true
+  fullFrameEveryN: 10
+  format: "png"
 polling:
   contextSeconds: 10
 logging:
@@ -132,6 +150,16 @@ spool:
 - Use `rotateDegrees` if your camera is mounted sideways.
 - Use `crop` to isolate the scoreboard region for better detection accuracy.
 - Verify capture quality with `python -m src.main capture`.
+
+## Dataset capture
+
+Use the dataset capture mode to build a training set for a scoreboard detector:
+
+```
+python -m src.main collect --config config.local.yaml
+```
+
+This saves cropped ROI images (and optional full frames) under `dataset/YYYY-MM-DD/`.
 
 ## Spool replay
 
