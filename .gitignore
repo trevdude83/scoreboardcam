@@ -9,3 +9,9 @@ spool/
 config.local.yaml
 config.backup.yaml
 dataset/
+
+# Training outputs
+training/.venv/
+training/scoreboard_saved_model/
+training/*.tflite
+training/labels.txt
