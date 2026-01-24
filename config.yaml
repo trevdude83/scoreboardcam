@@ -32,7 +32,7 @@ detector:
   enabled: false
   modelPath: "models/scoreboard_detector.tflite"
   labelsPath: "models/labels.txt"
-  scoreboardLabel: "scoreboard_end_match"
+  scoreboardLabel: "scoreboard"
   threshold: 0.80
   requiredHits: 8
   windowSize: 10

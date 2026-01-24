@@ -9,6 +9,7 @@ spool/
 config.local.yaml
 config.backup.yaml
 dataset/
+models/*.tflite
 
 # Training outputs
 training/.venv/

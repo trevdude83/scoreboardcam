@@ -117,7 +117,7 @@ detector:
   enabled: false
   modelPath: "models/scoreboard_detector.tflite"
   labelsPath: "models/labels.txt"
-  scoreboardLabel: "scoreboard_end_match"
+  scoreboardLabel: "scoreboard"
   threshold: 0.80
   requiredHits: 8
   windowSize: 10
@@ -187,3 +187,5 @@ python -m src.main run --config /opt/rocketsessions-scoreboardcam/config.local.y
 
 - Headless operation only. No GUI required.
 - Phase 2 detector requires a TFLite model and labels file; default config keeps it off.
+- For detector mode on Raspberry Pi, keep NumPy <2 and OpenCV <4.13, then install `tflite-runtime` without dependencies:
+  `pip install "numpy<2" "opencv-python<4.13" && pip install --no-deps --extra-index-url https://www.piwheels.org/simple tflite-runtime`

@@ -150,7 +150,7 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         enabled=bool(detector.get("enabled", False)),
         model_path=str(detector.get("modelPath", "models/scoreboard_detector.tflite")),
         labels_path=str(detector.get("labelsPath", "models/labels.txt")),
-        scoreboard_label=str(detector.get("scoreboardLabel", "scoreboard_end_match")),
+        scoreboard_label=str(detector.get("scoreboardLabel", "scoreboard")),
         threshold=float(detector.get("threshold", 0.8)),
         required_hits=int(detector.get("requiredHits", 8)),
         window_size=int(detector.get("windowSize", 10)),
