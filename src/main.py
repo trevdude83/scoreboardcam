@@ -65,8 +65,11 @@ def upload_images(
     status = response.get("status")
     logging.info("Upload complete: ingestId=%s status=%s", ingest_id, status)
     if config.upload.process_after_upload and isinstance(ingest_id, int):
-        processed = client.process_ingest(ingest_id)
-        logging.info("Process result: %s", processed)
+        try:
+            processed = client.process_ingest(ingest_id)
+            logging.info("Process result: %s", processed)
+        except Exception as exc:
+            logging.warning("Process request failed: %s", exc)
 
 
 def capture_and_upload(camera: Camera, client: DeviceClient, config: AppConfig, session_id: Optional[int]) -> None:

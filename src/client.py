@@ -53,7 +53,7 @@ class DeviceClient:
 
     def process_ingest(self, ingest_id: int) -> Dict[str, object]:
         url = f"{self.base_url}/api/v1/scoreboard/ingest/{ingest_id}/process"
-        response = self._request("POST", url, json={"deviceId": self.device.device_id})
+        response = self._request_allow_conflict("POST", url, json={"deviceId": self.device.device_id})
         return response.json()
 
     def _request(self, method: str, url: str, retries: int = 3, **kwargs: object) -> requests.Response:
@@ -65,6 +65,27 @@ class DeviceClient:
         for attempt in range(retries):
             try:
                 response = requests.request(method, url, headers=headers, timeout=10, **kwargs)
+                if response.status_code >= 500:
+                    raise RuntimeError(f"Server error {response.status_code}")
+                if response.status_code >= 400:
+                    raise RuntimeError(f"Request failed {response.status_code}: {response.text}")
+                return response
+            except Exception as exc:
+                last_error = exc
+                time.sleep(1.0 + attempt)
+        raise RuntimeError(f"Request failed after retries: {last_error}")
+
+    def _request_allow_conflict(self, method: str, url: str, retries: int = 3, **kwargs: object) -> requests.Response:
+        headers = kwargs.pop("headers", {})
+        if not isinstance(headers, dict):
+            headers = {}
+        headers.update(self._auth_header())
+        last_error: Optional[Exception] = None
+        for attempt in range(retries):
+            try:
+                response = requests.request(method, url, headers=headers, timeout=10, **kwargs)
+                if response.status_code == 409:
+                    return response
                 if response.status_code >= 500:
                     raise RuntimeError(f"Server error {response.status_code}")
                 if response.status_code >= 400:
