@@ -6,3 +6,5 @@ venv/
 .DS_Store
 spool/
 *.log
+config.local.yaml
+config.backup.yaml

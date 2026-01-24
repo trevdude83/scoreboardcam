@@ -24,7 +24,7 @@ Phase 2 (disabled by default):
 POST http://<server-host>:<port>/api/v1/scoreboard/devices/register
 ```
 
-2) Copy the deviceId and deviceKey into `config.yaml`.
+2) Copy the deviceId and deviceKey into `config.local.yaml` (recommended) or `config.yaml`.
 
 3) Install dependencies:
 
@@ -43,7 +43,7 @@ python -m src.main capture
 5) Run continuous mode:
 
 ```
-python -m src.main run
+python -m src.main run --config config.local.yaml
 ```
 
 Open a live preview in your browser (for camera positioning/crop). The preview now shows the full frame even when crop is enabled.
@@ -62,7 +62,15 @@ The preview page draws a dashed green crop box when `camera.crop.enabled` is tru
 
 ## Configuration
 
-Edit `config.yaml`:
+Edit `config.local.yaml` (recommended). The app will auto-load `config.local.yaml` if it exists, otherwise it falls back to `config.yaml`.
+
+Create a local config from the template:
+
+```
+cp config.yaml config.local.yaml
+```
+
+Then edit your local config:
 
 ```
 server:
@@ -144,7 +152,7 @@ sudo bash install.sh
 This will install and enable `scoreboardcam.service` which runs:
 
 ```
-python -m src.main run
+python -m src.main run --config /opt/rocketsessions-scoreboardcam/config.local.yaml
 ```
 
 ## Notes

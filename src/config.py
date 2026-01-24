@@ -197,5 +197,5 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
 
 def require_config(value: str, label: str) -> str:
     if not value:
-        raise ValueError(f"{label} is required in config.yaml")
+        raise ValueError(f"{label} is required in the config file")
     return value

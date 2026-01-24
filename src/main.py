@@ -251,10 +251,13 @@ def encode_frame(frame, fmt: str, quality: int) -> bytes:
 def main() -> None:
     parser = argparse.ArgumentParser(description="RocketSessions ScoreboardCam client")
     parser.add_argument("command", choices=["capture", "run", "flush-spool"])
-    parser.add_argument("--config", default="config.yaml")
+    parser.add_argument("--config")
     args = parser.parse_args()
 
-    config = load_config(args.config)
+    config_path = args.config
+    if not config_path:
+        config_path = "config.local.yaml" if Path("config.local.yaml").exists() else "config.yaml"
+    config = load_config(config_path)
     setup_logging(config.logging.level)
 
     if args.command == "capture":
@@ -262,7 +265,7 @@ def main() -> None:
     elif args.command == "flush-spool":
         run_flush_spool(config)
     else:
-        run_continuous(config, args.config)
+        run_continuous(config, config_path)
 
 
 if __name__ == "__main__":
