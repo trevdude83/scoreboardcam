@@ -19,7 +19,7 @@ class DetectionResult:
 
 
 class ScoreboardDetector:
-    def __init__(self, model_path: str, labels_path: str) -> None:
+    def __init__(self, model_path: str, labels_path: str, invert: bool = False) -> None:
         if tflite is None:
             raise RuntimeError("tflite-runtime is not installed.")
         self.interpreter = tflite.Interpreter(model_path=model_path)
@@ -27,6 +27,7 @@ class ScoreboardDetector:
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
         self.labels = _load_labels(labels_path)
+        self.invert = invert
 
     def classify(self, frame: np.ndarray) -> DetectionResult:
         input_data = self._preprocess(frame)
@@ -36,12 +37,15 @@ class ScoreboardDetector:
         if output_data.shape == () or output_data.shape == (1,):
             # Binary sigmoid output: value is P(scoreboard).
             scoreboard_prob = float(output_data.item())
-            label = "scoreboard"
+            if self.invert:
+                scoreboard_prob = 1.0 - scoreboard_prob
+            score_label = "scoreboard"
+            not_label = "not_scoreboard"
             if len(self.labels) >= 2:
-                label = self.labels[1]
-            if scoreboard_prob < 0.5:
-                label = self.labels[0] if self.labels else "not_scoreboard"
-            confidence = scoreboard_prob if label != "not_scoreboard" else 1.0 - scoreboard_prob
+                not_label = self.labels[0]
+                score_label = self.labels[1]
+            label = score_label if scoreboard_prob >= 0.5 else not_label
+            confidence = scoreboard_prob if label == score_label else 1.0 - scoreboard_prob
             return DetectionResult(label=label, confidence=confidence)
         best_index = int(np.argmax(output_data))
         confidence = float(output_data[best_index])

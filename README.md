@@ -118,6 +118,7 @@ detector:
   modelPath: "models/scoreboard_detector.tflite"
   labelsPath: "models/labels.txt"
   scoreboardLabel: "scoreboard"
+  invert: false
   threshold: 0.80
   requiredHits: 8
   windowSize: 10

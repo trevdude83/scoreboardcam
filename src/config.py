@@ -34,6 +34,7 @@ class DetectorConfig:
     model_path: str
     labels_path: str
     scoreboard_label: str
+    invert: bool
     threshold: float
     required_hits: int
     window_size: int
@@ -151,6 +152,7 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         model_path=str(detector.get("modelPath", "models/scoreboard_detector.tflite")),
         labels_path=str(detector.get("labelsPath", "models/labels.txt")),
         scoreboard_label=str(detector.get("scoreboardLabel", "scoreboard")),
+        invert=bool(detector.get("invert", False)),
         threshold=float(detector.get("threshold", 0.8)),
         required_hits=int(detector.get("requiredHits", 8)),
         window_size=int(detector.get("windowSize", 10)),

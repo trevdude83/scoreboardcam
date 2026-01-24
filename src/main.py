@@ -266,7 +266,11 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
         )
 
     if config.detector.enabled:
-        detector = ScoreboardDetector(config.detector.model_path, config.detector.labels_path)
+        detector = ScoreboardDetector(
+            config.detector.model_path,
+            config.detector.labels_path,
+            invert=config.detector.invert,
+        )
         debounce = DebouncedWindow(
             scoreboard_label=config.detector.scoreboard_label,
             threshold=config.detector.threshold,
