@@ -287,16 +287,15 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
             if len(frame_buffer) > config.detector.window_size:
                 frame_buffer.pop(0)
                 results_buffer.pop(0)
-            if result.label == config.detector.scoreboard_label:
-                now = time.time()
-                if now - last_detector_log >= 2.0:
-                    logging.info(
-                        "Detector: label=%s confidence=%.3f threshold=%.3f",
-                        result.label,
-                        result.confidence,
-                        config.detector.threshold,
-                    )
-                    last_detector_log = now
+            now = time.time()
+            if now - last_detector_log >= 2.0:
+                logging.info(
+                    "Detector: label=%s confidence=%.3f threshold=%.3f",
+                    result.label,
+                    result.confidence,
+                    config.detector.threshold,
+                )
+                last_detector_log = now
             if decision.triggered and decision.best_index is not None:
                 best_index = decision.best_index
                 best_frame = frame_buffer[best_index]
