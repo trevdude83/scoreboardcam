@@ -3,6 +3,7 @@ from __future__ import annotations
 import threading
 from typing import Callable
 
+import logging
 from flask import Flask, Response, jsonify, request
 import json
 
@@ -206,6 +207,7 @@ def start_local_server(
         count = max(1, min(count, 200))
         delay_ms = max(0.0, min(delay_ms, 2000.0))
         payload = probe_callback(count, delay_ms / 1000.0)
+        logging.info("Detector probe: %s", payload)
         return jsonify(payload)
 
     @app.route("/crop", methods=["POST"])
