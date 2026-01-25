@@ -354,11 +354,15 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
                 results_buffer.pop(0)
             now = time.time()
             if now - last_detector_log >= 2.0:
+                extra = ""
+                if result.meta:
+                    extra = " matches={matches} maxScore={maxScore:.3f}".format(**result.meta)
                 logging.info(
-                    "Detector: label=%s confidence=%.3f threshold=%.3f",
+                    "Detector: label=%s confidence=%.3f threshold=%.3f%s",
                     result.label,
                     result.confidence,
                     config.detector.threshold,
+                    extra,
                 )
                 last_detector_log = now
             if decision.triggered and decision.best_index is not None:
