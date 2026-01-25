@@ -17,6 +17,7 @@ except ImportError:  # pragma: no cover
 class DetectionResult:
     label: str
     confidence: float
+    meta: dict | None = None
 
 
 class ScoreboardDetector:
@@ -85,8 +86,16 @@ class TemplateDetector:
             if score >= self.threshold:
                 matches += 1
         if matches >= self.min_matches:
-            return DetectionResult(label=self.scoreboard_label, confidence=max_score)
-        return DetectionResult(label=self.not_scoreboard_label, confidence=max_score)
+            return DetectionResult(
+                label=self.scoreboard_label,
+                confidence=max_score,
+                meta={"matches": matches, "maxScore": max_score},
+            )
+        return DetectionResult(
+            label=self.not_scoreboard_label,
+            confidence=max_score,
+            meta={"matches": matches, "maxScore": max_score},
+        )
 
     def _load_templates(self, template_dir: str) -> List[np.ndarray]:
         path = Path(template_dir)
