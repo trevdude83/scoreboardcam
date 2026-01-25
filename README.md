@@ -70,6 +70,12 @@ http://<pi-ip>:5055/preview.html
 
 The preview page draws a dashed green crop box when `camera.crop.enabled` is true. You can drag on the image to set a new crop region.
 
+Quick detector probe (no upload, just scores). Returns min/avg/max scoreboard probability:
+
+```
+http://<pi-ip>:5055/probe?count=20&delayMs=50
+```
+
 ## Configuration
 
 Edit `config.local.yaml` (recommended). The app will auto-load `config.local.yaml` if it exists, otherwise it falls back to `config.yaml`.

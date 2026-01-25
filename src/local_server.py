@@ -13,6 +13,7 @@ def start_local_server(
     preview_callback: Callable[[], bytes],
     preview_meta: dict,
     update_crop_callback: Callable[[dict], dict],
+    probe_callback: Callable[[int, float], dict] | None = None,
 ) -> threading.Thread:
     app = Flask("scoreboardcam")
 
@@ -189,6 +190,23 @@ def start_local_server(
   </body>
 </html>"""
         return Response(html, mimetype="text/html")
+
+    @app.route("/probe", methods=["GET"])
+    def probe() -> Response:
+        if probe_callback is None:
+            return jsonify({"error": "Detector probe not available."}), 400
+        try:
+            count = int(request.args.get("count", 20))
+        except (TypeError, ValueError):
+            count = 20
+        try:
+            delay_ms = float(request.args.get("delayMs", 50))
+        except (TypeError, ValueError):
+            delay_ms = 50.0
+        count = max(1, min(count, 200))
+        delay_ms = max(0.0, min(delay_ms, 2000.0))
+        payload = probe_callback(count, delay_ms / 1000.0)
+        return jsonify(payload)
 
     @app.route("/crop", methods=["POST"])
     def update_crop() -> Response:

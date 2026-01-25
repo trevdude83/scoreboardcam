@@ -233,6 +233,7 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
     client = DeviceClient(config.server, require_device(config))
     camera = Camera(config.camera)
     state = ContextState()
+    camera_lock = threading.Lock()
 
     poll_thread = threading.Thread(
         target=poll_context,
@@ -241,12 +242,28 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
     )
     poll_thread.start()
 
+    detector: ScoreboardDetector | None = None
+    if config.detector.enabled:
+        detector = ScoreboardDetector(
+            config.detector.model_path,
+            config.detector.labels_path,
+            invert=config.detector.invert,
+        )
+
     if config.local_server.enabled:
         preview_meta = {
             "width": config.camera.width,
             "height": config.camera.height,
             "crop": asdict(config.camera.crop),
         }
+        def safe_capture() -> None:
+            with camera_lock:
+                capture_and_upload(camera, client, config, state.get())
+
+        def safe_preview() -> bytes:
+            with camera_lock:
+                return camera.capture_image("jpg", config.upload.jpeg_quality, apply_crop=False)[0]
+
         def update_crop(data: dict) -> dict:
             crop = config.camera.crop
             if "enabled" in data:
@@ -260,20 +277,42 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
             write_crop_to_config(config_path, crop)
             return asdict(crop)
 
+        def probe_detector(count: int, delay_seconds: float) -> dict:
+            if detector is None:
+                return {"error": "Detector is disabled."}
+            results: list[float] = []
+            for _ in range(count):
+                with camera_lock:
+                    frame = camera.read().image
+                result = detector.classify(frame)
+                scoreboard_label = config.detector.scoreboard_label
+                if result.label == scoreboard_label:
+                    scoreboard_prob = result.confidence
+                else:
+                    scoreboard_prob = 1.0 - result.confidence
+                results.append(scoreboard_prob)
+                if delay_seconds > 0:
+                    time.sleep(delay_seconds)
+            if not results:
+                return {"count": 0}
+            return {
+                "count": len(results),
+                "min": min(results),
+                "max": max(results),
+                "avg": sum(results) / len(results),
+                "threshold": config.detector.threshold,
+            }
+
         start_local_server(
             config.local_server.port,
-            lambda: capture_and_upload(camera, client, config, state.get()),
-            lambda: camera.capture_image("jpg", config.upload.jpeg_quality, apply_crop=False)[0],
+            safe_capture,
+            safe_preview,
             preview_meta,
             update_crop,
+            probe_callback=probe_detector,
         )
 
     if config.detector.enabled:
-        detector = ScoreboardDetector(
-            config.detector.model_path,
-            config.detector.labels_path,
-            invert=config.detector.invert,
-        )
         debounce = DebouncedWindow(
             scoreboard_label=config.detector.scoreboard_label,
             threshold=config.detector.threshold,
@@ -285,7 +324,8 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
         results_buffer: List[float] = []
         last_detector_log = 0.0
         while True:
-            frame = camera.read().image
+            with camera_lock:
+                frame = camera.read().image
             result = detector.classify(frame)
             decision = debounce.update(result)
             frame_bytes = encode_frame(frame, config.upload.format, config.upload.jpeg_quality)
