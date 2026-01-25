@@ -31,8 +31,12 @@ class CameraConfig:
 @dataclass
 class DetectorConfig:
     enabled: bool
+    mode: str
     model_path: str
     labels_path: str
+    template_dir: str
+    template_threshold: float
+    template_min_matches: int
     scoreboard_label: str
     invert: bool
     threshold: float
@@ -149,8 +153,12 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
 
     detector_cfg = DetectorConfig(
         enabled=bool(detector.get("enabled", False)),
+        mode=str(detector.get("mode", "tflite")),
         model_path=str(detector.get("modelPath", "models/scoreboard_detector.tflite")),
         labels_path=str(detector.get("labelsPath", "models/labels.txt")),
+        template_dir=str(detector.get("templateDir", "models/templates")),
+        template_threshold=float(detector.get("templateThreshold", 0.8)),
+        template_min_matches=int(detector.get("templateMinMatches", 3)),
         scoreboard_label=str(detector.get("scoreboardLabel", "scoreboard")),
         invert=bool(detector.get("invert", False)),
         threshold=float(detector.get("threshold", 0.8)),

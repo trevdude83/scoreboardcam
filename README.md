@@ -121,8 +121,12 @@ camera:
     h: 720
 detector:
   enabled: false
+  mode: "tflite" # tflite or template
   modelPath: "models/scoreboard_detector.tflite"
   labelsPath: "models/labels.txt"
+  templateDir: "models/templates"
+  templateThreshold: 0.80
+  templateMinMatches: 3
   scoreboardLabel: "scoreboard"
   invert: false
   threshold: 0.80
@@ -196,3 +200,5 @@ python -m src.main run --config /opt/rocketsessions-scoreboardcam/config.local.y
 - Phase 2 detector requires a TFLite model and labels file; default config keeps it off.
 - For detector mode on Raspberry Pi, keep NumPy <2 and OpenCV <4.13, then install `tflite-runtime` without dependencies:
   `pip install "numpy<2" "opencv-python<4.13" && pip install --no-deps --extra-index-url https://www.piwheels.org/simple tflite-runtime`
+- Template detector mode uses image templates under `models/templates`. Provide a few small crops of the scoreboard header text
+  (for example "SCORE", "GOALS", "ASSISTS", "SAVES", "SHOTS") and set `detector.mode: "template"`.

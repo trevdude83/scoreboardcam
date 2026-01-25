@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
@@ -59,6 +60,47 @@ class ScoreboardDetector:
         # Match tf.keras.applications.mobilenet_v3.preprocess_input
         input_data = (input_data / 127.5) - 1.0
         return np.expand_dims(input_data, axis=0)
+
+
+class TemplateDetector:
+    def __init__(self, template_dir: str, threshold: float, min_matches: int, scoreboard_label: str = "scoreboard") -> None:
+        self.threshold = threshold
+        self.min_matches = min_matches
+        self.scoreboard_label = scoreboard_label
+        self.not_scoreboard_label = "not_scoreboard"
+        self.templates = self._load_templates(template_dir)
+        if not self.templates:
+            raise RuntimeError(f"No templates found in {template_dir}")
+
+    def classify(self, frame: np.ndarray) -> DetectionResult:
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        matches = 0
+        max_score = 0.0
+        for template in self.templates:
+            if gray.shape[0] < template.shape[0] or gray.shape[1] < template.shape[1]:
+                continue
+            result = cv2.matchTemplate(gray, template, cv2.TM_CCOEFF_NORMED)
+            _, score, _, _ = cv2.minMaxLoc(result)
+            max_score = max(max_score, float(score))
+            if score >= self.threshold:
+                matches += 1
+        if matches >= self.min_matches:
+            return DetectionResult(label=self.scoreboard_label, confidence=max_score)
+        return DetectionResult(label=self.not_scoreboard_label, confidence=max_score)
+
+    def _load_templates(self, template_dir: str) -> List[np.ndarray]:
+        path = Path(template_dir)
+        if not path.exists():
+            return []
+        templates: List[np.ndarray] = []
+        for item in path.iterdir():
+            if item.suffix.lower() not in (".png", ".jpg", ".jpeg"):
+                continue
+            image = cv2.imread(str(item), cv2.IMREAD_GRAYSCALE)
+            if image is None:
+                continue
+            templates.append(image)
+        return templates
 
 
 def _load_labels(path: str) -> List[str]:

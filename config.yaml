@@ -30,8 +30,12 @@ camera:
     h: 720
 detector:
   enabled: false
+  mode: "tflite" # tflite or template
   modelPath: "models/scoreboard_detector.tflite"
   labelsPath: "models/labels.txt"
+  templateDir: "models/templates"
+  templateThreshold: 0.80
+  templateMinMatches: 3
   scoreboardLabel: "scoreboard"
   invert: false
   threshold: 0.80

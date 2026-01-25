@@ -15,7 +15,7 @@ import cv2
 from .client import DeviceClient
 from .config import AppConfig, load_config, require_config
 from .debounce import DebouncedWindow
-from .detector import ScoreboardDetector
+from .detector import ScoreboardDetector, TemplateDetector
 from .local_server import start_local_server
 from .logging_utils import setup_logging
 from .spool import delete_spool_item, list_spool, save_to_spool
@@ -243,13 +243,22 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
     )
     poll_thread.start()
 
-    detector: ScoreboardDetector | None = None
+    detector: ScoreboardDetector | TemplateDetector | None = None
+    detector_mode = config.detector.mode.lower()
     if config.detector.enabled:
-        detector = ScoreboardDetector(
-            config.detector.model_path,
-            config.detector.labels_path,
-            invert=config.detector.invert,
-        )
+        if detector_mode == "template":
+            detector = TemplateDetector(
+                config.detector.template_dir,
+                config.detector.template_threshold,
+                config.detector.template_min_matches,
+                scoreboard_label=config.detector.scoreboard_label,
+            )
+        else:
+            detector = ScoreboardDetector(
+                config.detector.model_path,
+                config.detector.labels_path,
+                invert=config.detector.invert,
+            )
 
     if config.local_server.enabled:
         preview_meta = {
@@ -287,11 +296,14 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
                     frame = camera.read().image
                 with detector_lock:
                     result = detector.classify(frame)
-                scoreboard_label = config.detector.scoreboard_label
-                if result.label == scoreboard_label:
+                if detector_mode == "template":
                     scoreboard_prob = result.confidence
                 else:
-                    scoreboard_prob = 1.0 - result.confidence
+                    scoreboard_label = config.detector.scoreboard_label
+                    if result.label == scoreboard_label:
+                        scoreboard_prob = result.confidence
+                    else:
+                        scoreboard_prob = 1.0 - result.confidence
                 results.append(scoreboard_prob)
                 if delay_seconds > 0:
                     time.sleep(delay_seconds)
@@ -315,9 +327,12 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
         )
 
     if config.detector.enabled:
+        threshold = config.detector.threshold
+        if detector_mode == "template":
+            threshold = config.detector.template_threshold
         debounce = DebouncedWindow(
             scoreboard_label=config.detector.scoreboard_label,
-            threshold=config.detector.threshold,
+            threshold=threshold,
             required_hits=config.detector.required_hits,
             window_size=config.detector.window_size,
             cooldown_seconds=config.detector.cooldown_seconds,
