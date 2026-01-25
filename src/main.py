@@ -234,6 +234,7 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
     camera = Camera(config.camera)
     state = ContextState()
     camera_lock = threading.Lock()
+    detector_lock = threading.Lock()
 
     poll_thread = threading.Thread(
         target=poll_context,
@@ -284,7 +285,8 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
             for _ in range(count):
                 with camera_lock:
                     frame = camera.read().image
-                result = detector.classify(frame)
+                with detector_lock:
+                    result = detector.classify(frame)
                 scoreboard_label = config.detector.scoreboard_label
                 if result.label == scoreboard_label:
                     scoreboard_prob = result.confidence
@@ -326,7 +328,8 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
         while True:
             with camera_lock:
                 frame = camera.read().image
-            result = detector.classify(frame)
+            with detector_lock:
+                result = detector.classify(frame)
             decision = debounce.update(result)
             frame_bytes = encode_frame(frame, config.upload.format, config.upload.jpeg_quality)
             frame_buffer.append(frame_bytes)
