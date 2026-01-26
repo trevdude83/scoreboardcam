@@ -357,11 +357,18 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
                 extra = ""
                 if result.meta:
                     extra = " matches={matches} maxScore={maxScore:.3f}".format(**result.meta)
+                threshold_value = (
+                    config.detector.template_threshold
+                    if config.detector.mode == "template"
+                    else config.detector.threshold
+                )
+                threshold_label = "templateThreshold" if config.detector.mode == "template" else "threshold"
                 logging.info(
-                    "Detector: label=%s confidence=%.3f threshold=%.3f%s",
+                    "Detector: label=%s confidence=%.3f %s=%.3f%s",
                     result.label,
                     result.confidence,
-                    config.detector.threshold,
+                    threshold_label,
+                    threshold_value,
                     extra,
                 )
                 last_detector_log = now
