@@ -8,6 +8,8 @@ spool/
 *.log
 config.local.yaml
 config.backup.yaml
+config.yaml
+config.crop.yaml
 dataset/
 models/*.tflite
 

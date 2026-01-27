@@ -49,7 +49,7 @@ Copy:
 - `scoreboard_detector.tflite` -> `models/scoreboard_detector.tflite`
 - `labels.txt` -> `models/labels.txt`
 
-Enable in `config.local.yaml`:
+Enable in `config.yaml` (local file):
 
 ```
 detector:

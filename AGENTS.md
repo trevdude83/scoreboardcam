@@ -1,15 +1,17 @@
-# AGENTS.md
+﻿# AGENTS.md
 
 ## Project
 ScoreboardCam (Raspberry Pi client) for RocketSessions Scoreboard ingestion.
 
 ## Run
-- Primary: `python -m src.main run --config config.local.yaml`
-- One-off capture: `python -m src.main capture --config config.local.yaml`
+- Primary: `python -m src.main run --config config.yaml`
+- One-off capture: `python -m src.main capture --config config.yaml`
 - Preview: http://<pi-ip>:5055/preview.html
 
 ## Config
-- Use `config.local.yaml` (not committed) for deviceId/deviceKey, camera, crop.
+- Use `config.yaml` (not committed) for deviceId/deviceKey, camera, crop.
+- Copy from `config.example.yaml` first.
+- Auto-calibrate and preview crop updates write to `config.crop.yaml`.
 - Detector mode in config:
   - template mode uses `templateThreshold` + `templateMinMatches` and PNG templates in `models/templates/`.
   - tflite mode uses `threshold` + model in `models/`.
@@ -22,7 +24,7 @@ ScoreboardCam (Raspberry Pi client) for RocketSessions Scoreboard ingestion.
   import cv2
   from src.config import load_config
   from src.camera import Camera
-  cfg = load_config('config.local.yaml')
+  cfg = load_config('config.yaml')
   cam = Camera(cfg.camera)
   frame = cam.read().image
   cam.release()
@@ -33,7 +35,7 @@ ScoreboardCam (Raspberry Pi client) for RocketSessions Scoreboard ingestion.
 
 ## Templates
 - Place header templates in `models/templates/*.PNG`.
-- Template matching threshold typically 0.60�0.75; tune using `maxScore` logs.
+- Template matching threshold typically 0.60–0.75; tune using `maxScore` logs.
 
 ## Notes
 - Preview crop now uses actual frame size; draw crop in preview then save.

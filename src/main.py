@@ -13,7 +13,7 @@ from typing import List, Optional, Tuple
 from .camera import Camera
 import cv2
 from .client import DeviceClient
-from .config import AppConfig, load_config, require_config
+from .config import AppConfig, crop_override_path, load_config, require_config
 from .debounce import DebouncedWindow
 from .detector import ScoreboardDetector, TemplateDetector
 from .local_server import start_local_server
@@ -407,19 +407,19 @@ def require_device(config: AppConfig):
 def write_crop_to_config(config_path: str, crop) -> None:
     try:
         import yaml
-        from pathlib import Path
-        config_file = Path(config_path)
-        data = yaml.safe_load(config_file.read_text()) or {}
-        camera = data.get("camera", {})
-        camera["crop"] = {
-            "enabled": bool(crop.enabled),
-            "x": int(crop.x),
-            "y": int(crop.y),
-            "w": int(crop.w),
-            "h": int(crop.h),
+        override_file = crop_override_path(config_path)
+        data = {
+            "camera": {
+                "crop": {
+                    "enabled": bool(crop.enabled),
+                    "x": int(crop.x),
+                    "y": int(crop.y),
+                    "w": int(crop.w),
+                    "h": int(crop.h),
+                }
+            }
         }
-        data["camera"] = camera
-        config_file.write_text(yaml.safe_dump(data, sort_keys=False))
+        override_file.write_text(yaml.safe_dump(data, sort_keys=False))
     except Exception:
         return
 
@@ -446,6 +446,13 @@ def auto_calibrate_crop(camera: Camera, config: AppConfig, config_path: str) -> 
     if not config.detector.auto_calibrate:
         return
 
+    override_file = crop_override_path(config_path)
+    if override_file.exists():
+        try:
+            override_file.unlink()
+        except Exception:
+            logging.warning("Auto-calibrate: failed to clear %s", override_file)
+
     template_dir = Path(config.detector.template_dir)
     templates = _load_calibration_templates(template_dir)
     if not templates:
@@ -460,6 +467,12 @@ def auto_calibrate_crop(camera: Camera, config: AppConfig, config_path: str) -> 
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     frame_h, frame_w = gray.shape[:2]
+    # Reset crop to full frame for this session unless calibration succeeds.
+    config.camera.crop.enabled = False
+    config.camera.crop.x = 0
+    config.camera.crop.y = 0
+    config.camera.crop.w = frame_w
+    config.camera.crop.h = frame_h
     matches: List[Tuple[int, int, int, int, float, str]] = []
     best_score = 0.0
 
@@ -575,7 +588,7 @@ def main() -> None:
 
     config_path = args.config
     if not config_path:
-        config_path = "config.local.yaml" if Path("config.local.yaml").exists() else "config.yaml"
+        config_path = "config.yaml"
     config = load_config(config_path)
     setup_logging(config.logging.level)
 

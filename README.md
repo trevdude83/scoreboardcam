@@ -24,7 +24,7 @@ Phase 2 (disabled by default):
 POST http://<server-host>:<port>/api/v1/scoreboard/devices/register
 ```
 
-2) Copy the deviceId and deviceKey into `config.local.yaml` (recommended) or `config.yaml`.
+2) Copy the deviceId and deviceKey into `config.yaml` (not committed).
 
 3) Install dependencies:
 
@@ -43,13 +43,13 @@ python -m src.main capture
 5) Run continuous mode:
 
 ```
-python -m src.main run --config config.local.yaml
+python -m src.main run --config config.yaml
 ```
 
 6) Capture a training dataset (optional):
 
 ```
-python -m src.main collect --config config.local.yaml
+python -m src.main collect --config config.yaml
 ```
 
 During collection:
@@ -69,6 +69,7 @@ http://<pi-ip>:5055/preview.html
 ```
 
 The preview page draws a dashed green crop box when `camera.crop.enabled` is true. You can drag on the image to set a new crop region.
+Auto-calibration and preview crop changes are saved to a separate file (`config.crop.yaml`) so `config.yaml` stays stable.
 
 Quick detector probe (no upload, just scores). Returns min/avg/max scoreboard probability:
 
@@ -78,15 +79,15 @@ http://<pi-ip>:5055/probe?count=20&delayMs=50
 
 ## Configuration
 
-Edit `config.local.yaml` (recommended). The app will auto-load `config.local.yaml` if it exists, otherwise it falls back to `config.yaml`.
-
 Create a local config from the template:
 
 ```
-cp config.yaml config.local.yaml
+cp config.example.yaml config.yaml
 ```
 
 Then edit your local config:
+
+Note: crop updates from preview and auto-calibration are stored in `config.crop.yaml`. The app reads this file automatically and merges the crop settings at startup.
 
 ```
 server:
@@ -127,6 +128,13 @@ detector:
   templateDir: "models/templates"
   templateThreshold: 0.80
   templateMinMatches: 3
+  autoCalibrate: true
+  calibrateMinScore: 0.45
+  calibrateMinMatches: 3
+  calibrateMarginLeft: 1.4
+  calibrateMarginRight: 0.4
+  calibrateMarginTop: 0.6
+  calibrateMarginBottom: 3.2
   scoreboardLabel: "scoreboard"
   invert: false
   threshold: 0.80
@@ -167,7 +175,7 @@ spool:
 Use the dataset capture mode to build a training set for a scoreboard detector:
 
 ```
-python -m src.main collect --config config.local.yaml
+python -m src.main collect --config config.yaml
 ```
 
 This saves cropped ROI images (and optional full frames) under `dataset/YYYY-MM-DD/`.
@@ -191,7 +199,7 @@ sudo bash install.sh
 This will install and enable `scoreboardcam.service` which runs:
 
 ```
-python -m src.main run --config /opt/rocketsessions-scoreboardcam/config.local.yaml
+python -m src.main run --config /opt/rocketsessions-scoreboardcam/config.yaml
 ```
 
 ## Notes

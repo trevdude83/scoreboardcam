@@ -119,12 +119,36 @@ class AppConfig:
     spool: SpoolConfig
 
 
+def _crop_override_path(path: str) -> Path:
+    config_path = Path(path)
+    if config_path.suffix.lower() == ".yaml":
+        return config_path.with_name(f"{config_path.stem}.crop.yaml")
+    if config_path.suffix.lower() == ".yml":
+        return config_path.with_name(f"{config_path.stem}.crop.yml")
+    return config_path.with_name(f"{config_path.name}.crop.yaml")
+
+
 def load_config(path: str = "config.yaml") -> AppConfig:
     config_path = Path(path)
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
     data = yaml.safe_load(config_path.read_text()) or {}
+    override_path = _crop_override_path(path)
+    if override_path.exists():
+        override = yaml.safe_load(override_path.read_text()) or {}
+        camera = data.get("camera", {})
+        crop = camera.get("crop", {})
+        override_camera = override.get("camera", {})
+        override_crop = override_camera.get("crop", {})
+        if isinstance(override_crop, dict):
+            crop.update(override_crop)
+            camera["crop"] = crop
+            data["camera"] = camera
     return _parse_config(data)
+
+
+def crop_override_path(path: str = "config.yaml") -> Path:
+    return _crop_override_path(path)
 
 
 def _parse_config(data: Dict[str, Any]) -> AppConfig:
