@@ -44,6 +44,13 @@ class DetectorConfig:
     required_hits: int
     window_size: int
     cooldown_seconds: int
+    auto_calibrate: bool
+    calibrate_min_score: float
+    calibrate_min_matches: int
+    calibrate_margin_left: float
+    calibrate_margin_right: float
+    calibrate_margin_top: float
+    calibrate_margin_bottom: float
 
 
 @dataclass
@@ -184,6 +191,13 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         required_hits=int(detector.get("requiredHits", 8)),
         window_size=int(detector.get("windowSize", 10)),
         cooldown_seconds=int(detector.get("cooldownSeconds", 75)),
+        auto_calibrate=bool(detector.get("autoCalibrate", True)),
+        calibrate_min_score=float(detector.get("calibrateMinScore", 0.45)),
+        calibrate_min_matches=int(detector.get("calibrateMinMatches", 3)),
+        calibrate_margin_left=float(detector.get("calibrateMarginLeft", 1.4)),
+        calibrate_margin_right=float(detector.get("calibrateMarginRight", 0.4)),
+        calibrate_margin_top=float(detector.get("calibrateMarginTop", 0.6)),
+        calibrate_margin_bottom=float(detector.get("calibrateMarginBottom", 3.2)),
     )
 
     format_value = str(upload.get("format", "jpg")).lower()

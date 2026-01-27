@@ -8,7 +8,7 @@ import time
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from .camera import Camera
 import cv2
@@ -236,6 +236,8 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
     camera_lock = threading.Lock()
     detector_lock = threading.Lock()
 
+    auto_calibrate_crop(camera, config, config_path)
+
     poll_thread = threading.Thread(
         target=poll_context,
         args=(client, state, config.polling.context_seconds),
@@ -420,6 +422,125 @@ def write_crop_to_config(config_path: str, crop) -> None:
         config_file.write_text(yaml.safe_dump(data, sort_keys=False))
     except Exception:
         return
+
+
+def _load_calibration_templates(template_dir: Path) -> List[Tuple[str, np.ndarray]]:
+    templates: List[Tuple[str, np.ndarray]] = []
+    if not template_dir.exists():
+        return templates
+    for item in template_dir.iterdir():
+        if item.suffix.lower() not in (".png", ".jpg", ".jpeg"):
+            continue
+        image = cv2.imread(str(item), cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            continue
+        templates.append((item.name, image))
+    return templates
+
+
+def auto_calibrate_crop(camera: Camera, config: AppConfig, config_path: str) -> None:
+    if not config.detector.enabled:
+        return
+    if config.detector.mode.lower() != "template":
+        return
+    if not config.detector.auto_calibrate:
+        return
+
+    template_dir = Path(config.detector.template_dir)
+    templates = _load_calibration_templates(template_dir)
+    if not templates:
+        logging.warning("Auto-calibrate skipped: no templates found in %s", template_dir)
+        return
+
+    try:
+        frame = camera.read_raw()
+    except Exception as exc:
+        logging.warning("Auto-calibrate skipped: failed to read frame (%s)", exc)
+        return
+
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    frame_h, frame_w = gray.shape[:2]
+    matches: List[Tuple[int, int, int, int, float, str]] = []
+    best_score = 0.0
+
+    for name, template in templates:
+        best = 0.0
+        best_loc = None
+        best_size = None
+        for scale in config.detector.template_scales:
+            if scale <= 0:
+                continue
+            if scale == 1.0:
+                scaled = template
+            else:
+                scaled = cv2.resize(
+                    template,
+                    None,
+                    fx=scale,
+                    fy=scale,
+                    interpolation=cv2.INTER_LINEAR,
+                )
+            if gray.shape[0] < scaled.shape[0] or gray.shape[1] < scaled.shape[1]:
+                continue
+            result = cv2.matchTemplate(gray, scaled, cv2.TM_CCOEFF_NORMED)
+            _, score, _, loc = cv2.minMaxLoc(result)
+            score = float(score)
+            if score > best:
+                best = score
+                best_loc = loc
+                best_size = (scaled.shape[1], scaled.shape[0])
+        if best_loc is None or best_size is None:
+            continue
+        if best >= config.detector.calibrate_min_score:
+            x, y = best_loc
+            w, h = best_size
+            matches.append((x, y, w, h, best, name))
+            if best > best_score:
+                best_score = best
+
+    if len(matches) < config.detector.calibrate_min_matches:
+        logging.warning(
+            "Auto-calibrate skipped: only %d template matches (min=%d).",
+            len(matches),
+            config.detector.calibrate_min_matches,
+        )
+        return
+
+    min_x = min(x for x, _, _, _, _, _ in matches)
+    min_y = min(y for _, y, _, _, _, _ in matches)
+    max_x = max(x + w for x, _, w, _, _, _ in matches)
+    max_y = max(y + h for _, y, _, h, _, _ in matches)
+
+    bbox_w = max(1, max_x - min_x)
+    bbox_h = max(1, max_y - min_y)
+
+    left = int(bbox_w * config.detector.calibrate_margin_left)
+    right = int(bbox_w * config.detector.calibrate_margin_right)
+    top = int(bbox_h * config.detector.calibrate_margin_top)
+    bottom = int(bbox_h * config.detector.calibrate_margin_bottom)
+
+    crop_x = max(0, min_x - left)
+    crop_y = max(0, min_y - top)
+    crop_x2 = min(frame_w, max_x + right)
+    crop_y2 = min(frame_h, max_y + bottom)
+    crop_w = max(1, crop_x2 - crop_x)
+    crop_h = max(1, crop_y2 - crop_y)
+
+    config.camera.crop.enabled = True
+    config.camera.crop.x = int(crop_x)
+    config.camera.crop.y = int(crop_y)
+    config.camera.crop.w = int(crop_w)
+    config.camera.crop.h = int(crop_h)
+    write_crop_to_config(config_path, config.camera.crop)
+    logging.info(
+        "Auto-calibrated crop: x=%d y=%d w=%d h=%d matches=%d best=%.3f",
+        crop_x,
+        crop_y,
+        crop_w,
+        crop_h,
+        len(matches),
+        best_score,
+    )
 
 
 def select_best_frames(frames: List[bytes], confidences: List[float], max_images: int) -> List[bytes]:
