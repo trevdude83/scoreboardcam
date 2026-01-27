@@ -527,10 +527,16 @@ def auto_calibrate_crop(camera: Camera, config: AppConfig, config_path: str) -> 
     bbox_w = max(1, max_x - min_x)
     bbox_h = max(1, max_y - min_y)
 
-    left = int(bbox_w * config.detector.calibrate_margin_left)
-    right = int(bbox_w * config.detector.calibrate_margin_right)
-    top = int(bbox_h * config.detector.calibrate_margin_top)
-    bottom = int(bbox_h * config.detector.calibrate_margin_bottom)
+    if config.detector.calibrate_use_frame_margins:
+        left = int(frame_w * config.detector.calibrate_frame_margin_left)
+        right = int(frame_w * config.detector.calibrate_frame_margin_right)
+        top = int(frame_h * config.detector.calibrate_frame_margin_top)
+        bottom = int(frame_h * config.detector.calibrate_frame_margin_bottom)
+    else:
+        left = int(bbox_w * config.detector.calibrate_margin_left)
+        right = int(bbox_w * config.detector.calibrate_margin_right)
+        top = int(bbox_h * config.detector.calibrate_margin_top)
+        bottom = int(bbox_h * config.detector.calibrate_margin_bottom)
 
     crop_x = max(0, min_x - left)
     crop_y = max(0, min_y - top)

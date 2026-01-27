@@ -43,6 +43,11 @@ detector:
   calibrateMarginRight: 0.4
   calibrateMarginTop: 0.6
   calibrateMarginBottom: 3.2
+  calibrateUseFrameMargins: true
+  calibrateFrameMarginLeft: 0.55
+  calibrateFrameMarginRight: 0.05
+  calibrateFrameMarginTop: 0.05
+  calibrateFrameMarginBottom: 0.35
   scoreboardLabel: "scoreboard"
   invert: false
   threshold: 0.80

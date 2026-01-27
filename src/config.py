@@ -51,6 +51,11 @@ class DetectorConfig:
     calibrate_margin_right: float
     calibrate_margin_top: float
     calibrate_margin_bottom: float
+    calibrate_use_frame_margins: bool
+    calibrate_frame_margin_left: float
+    calibrate_frame_margin_right: float
+    calibrate_frame_margin_top: float
+    calibrate_frame_margin_bottom: float
 
 
 @dataclass
@@ -222,6 +227,11 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         calibrate_margin_right=float(detector.get("calibrateMarginRight", 0.4)),
         calibrate_margin_top=float(detector.get("calibrateMarginTop", 0.6)),
         calibrate_margin_bottom=float(detector.get("calibrateMarginBottom", 3.2)),
+        calibrate_use_frame_margins=bool(detector.get("calibrateUseFrameMargins", True)),
+        calibrate_frame_margin_left=float(detector.get("calibrateFrameMarginLeft", 0.55)),
+        calibrate_frame_margin_right=float(detector.get("calibrateFrameMarginRight", 0.05)),
+        calibrate_frame_margin_top=float(detector.get("calibrateFrameMarginTop", 0.05)),
+        calibrate_frame_margin_bottom=float(detector.get("calibrateFrameMarginBottom", 0.35)),
     )
 
     format_value = str(upload.get("format", "jpg")).lower()
