@@ -252,6 +252,7 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
                 config.detector.template_threshold,
                 config.detector.template_min_matches,
                 scoreboard_label=config.detector.scoreboard_label,
+                scales=config.detector.template_scales,
             )
         else:
             detector = ScoreboardDetector(

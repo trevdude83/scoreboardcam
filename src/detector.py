@@ -64,11 +64,19 @@ class ScoreboardDetector:
 
 
 class TemplateDetector:
-    def __init__(self, template_dir: str, threshold: float, min_matches: int, scoreboard_label: str = "scoreboard") -> None:
+    def __init__(
+        self,
+        template_dir: str,
+        threshold: float,
+        min_matches: int,
+        scoreboard_label: str = "scoreboard",
+        scales: List[float] | None = None,
+    ) -> None:
         self.threshold = threshold
         self.min_matches = min_matches
         self.scoreboard_label = scoreboard_label
         self.not_scoreboard_label = "not_scoreboard"
+        self.scales = scales or [1.0]
         self.templates = self._load_templates(template_dir)
         if not self.templates:
             raise RuntimeError(f"No templates found in {template_dir}")
@@ -77,24 +85,42 @@ class TemplateDetector:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         matches = 0
         max_score = 0.0
+        best_scale = 1.0
         for template in self.templates:
-            if gray.shape[0] < template.shape[0] or gray.shape[1] < template.shape[1]:
-                continue
-            result = cv2.matchTemplate(gray, template, cv2.TM_CCOEFF_NORMED)
-            _, score, _, _ = cv2.minMaxLoc(result)
-            max_score = max(max_score, float(score))
-            if score >= self.threshold:
-                matches += 1
+            for scale in self.scales:
+                if scale <= 0:
+                    continue
+                if scale == 1.0:
+                    scaled = template
+                else:
+                    scaled = cv2.resize(
+                        template,
+                        None,
+                        fx=scale,
+                        fy=scale,
+                        interpolation=cv2.INTER_LINEAR,
+                    )
+                if gray.shape[0] < scaled.shape[0] or gray.shape[1] < scaled.shape[1]:
+                    continue
+                result = cv2.matchTemplate(gray, scaled, cv2.TM_CCOEFF_NORMED)
+                _, score, _, _ = cv2.minMaxLoc(result)
+                score = float(score)
+                if score > max_score:
+                    max_score = score
+                    best_scale = scale
+                if score >= self.threshold:
+                    matches += 1
+                    break
         if matches >= self.min_matches:
             return DetectionResult(
                 label=self.scoreboard_label,
                 confidence=max_score,
-                meta={"matches": matches, "maxScore": max_score},
+                meta={"matches": matches, "maxScore": max_score, "bestScale": best_scale},
             )
         return DetectionResult(
             label=self.not_scoreboard_label,
             confidence=max_score,
-            meta={"matches": matches, "maxScore": max_score},
+            meta={"matches": matches, "maxScore": max_score, "bestScale": best_scale},
         )
 
     def _load_templates(self, template_dir: str) -> List[np.ndarray]:

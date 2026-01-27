@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import yaml
 
@@ -37,6 +37,7 @@ class DetectorConfig:
     template_dir: str
     template_threshold: float
     template_min_matches: int
+    template_scales: List[float]
     scoreboard_label: str
     invert: bool
     threshold: float
@@ -151,6 +152,23 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         crop=crop_cfg,
     )
 
+    template_scales: List[float] = [1.0]
+    raw_scales = detector.get("templateScales")
+    if isinstance(raw_scales, list):
+        template_scales = [float(value) for value in raw_scales if value is not None]
+    elif isinstance(raw_scales, str):
+        parsed = []
+        for part in raw_scales.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                parsed.append(float(part))
+            except ValueError:
+                continue
+        if parsed:
+            template_scales = parsed
+
     detector_cfg = DetectorConfig(
         enabled=bool(detector.get("enabled", False)),
         mode=str(detector.get("mode", "tflite")),
@@ -159,6 +177,7 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         template_dir=str(detector.get("templateDir", "models/templates")),
         template_threshold=float(detector.get("templateThreshold", 0.8)),
         template_min_matches=int(detector.get("templateMinMatches", 3)),
+        template_scales=template_scales,
         scoreboard_label=str(detector.get("scoreboardLabel", "scoreboard")),
         invert=bool(detector.get("invert", False)),
         threshold=float(detector.get("threshold", 0.8)),
