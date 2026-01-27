@@ -272,7 +272,10 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
 
         def safe_preview() -> bytes:
             with camera_lock:
-                return camera.capture_image("jpg", config.upload.jpeg_quality, apply_crop=False)[0]
+                frame = camera.read_raw()
+                preview_meta["width"] = frame.shape[1]
+                preview_meta["height"] = frame.shape[0]
+                return camera.encode_image(frame, "jpg", config.upload.jpeg_quality)[0]
 
         def update_crop(data: dict) -> dict:
             crop = config.camera.crop

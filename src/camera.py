@@ -65,8 +65,14 @@ class Camera:
         frame = self._apply_crop(frame)
         return CameraFrame(image=frame)
 
+    def read_raw(self) -> np.ndarray:
+        return self._read_raw()
+
     def capture_image(self, fmt: str, quality: int = 85, apply_crop: bool = True) -> tuple[bytes, str, str]:
         frame = self.read().image if apply_crop else self._read_raw()
+        return self._encode_image(frame, fmt, quality)
+
+    def encode_image(self, frame: np.ndarray, fmt: str, quality: int = 85) -> tuple[bytes, str, str]:
         return self._encode_image(frame, fmt, quality)
 
     def _encode_image(self, frame: np.ndarray, fmt: str, quality: int) -> tuple[bytes, str, str]:
