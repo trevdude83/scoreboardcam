@@ -34,6 +34,7 @@ detector:
   modelPath: "models/scoreboard_detector.tflite"
   labelsPath: "models/labels.txt"
   templateDir: "models/templates"
+  calibrateTemplateDir: "models/templates/calibration"
   templateThreshold: 0.80
   templateMinMatches: 3
   autoCalibrate: true
@@ -54,6 +55,7 @@ detector:
   requiredHits: 8
   windowSize: 10
   cooldownSeconds: 75
+  rearmMinClears: 5
 upload:
   maxImages: 3
   jpegQuality: 95

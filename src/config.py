@@ -45,6 +45,7 @@ class DetectorConfig:
     required_hits: int
     window_size: int
     cooldown_seconds: int
+    rearm_min_clears: int
     auto_calibrate: bool
     calibrate_min_score: float
     calibrate_min_matches: int
@@ -224,6 +225,7 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         required_hits=int(detector.get("requiredHits", 8)),
         window_size=int(detector.get("windowSize", 10)),
         cooldown_seconds=int(detector.get("cooldownSeconds", 75)),
+        rearm_min_clears=int(detector.get("rearmMinClears", 5)),
         auto_calibrate=bool(detector.get("autoCalibrate", True)),
         calibrate_min_score=float(detector.get("calibrateMinScore", 0.45)),
         calibrate_min_matches=int(detector.get("calibrateMinMatches", 3)),

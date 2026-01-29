@@ -342,6 +342,7 @@ def run_continuous(config: AppConfig, config_path: str) -> None:
             required_hits=config.detector.required_hits,
             window_size=config.detector.window_size,
             cooldown_seconds=config.detector.cooldown_seconds,
+            rearm_min_clears=config.detector.rearm_min_clears,
         )
         frame_buffer: List[bytes] = []
         results_buffer: List[float] = []
