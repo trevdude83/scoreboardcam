@@ -446,13 +446,6 @@ def auto_calibrate_crop(camera: Camera, config: AppConfig, config_path: str) -> 
     if not config.detector.auto_calibrate:
         return
 
-    override_file = crop_override_path(config_path)
-    if override_file.exists():
-        try:
-            override_file.unlink()
-        except Exception:
-            logging.warning("Auto-calibrate: failed to clear %s", override_file)
-
     template_dir = Path(config.detector.template_dir)
     templates = _load_calibration_templates(template_dir)
     if not templates:
@@ -467,12 +460,6 @@ def auto_calibrate_crop(camera: Camera, config: AppConfig, config_path: str) -> 
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     frame_h, frame_w = gray.shape[:2]
-    # Reset crop to full frame for this session unless calibration succeeds.
-    config.camera.crop.enabled = False
-    config.camera.crop.x = 0
-    config.camera.crop.y = 0
-    config.camera.crop.w = frame_w
-    config.camera.crop.h = frame_h
     matches: List[Tuple[int, int, int, int, float, str]] = []
     best_score = 0.0
 
@@ -511,11 +498,12 @@ def auto_calibrate_crop(camera: Camera, config: AppConfig, config_path: str) -> 
             if best > best_score:
                 best_score = best
 
-    if len(matches) < config.detector.calibrate_min_matches:
+    effective_min_matches = max(2, config.detector.calibrate_min_matches)
+    if len(matches) < effective_min_matches:
         logging.warning(
             "Auto-calibrate skipped: only %d template matches (min=%d).",
             len(matches),
-            config.detector.calibrate_min_matches,
+            effective_min_matches,
         )
         return
 
@@ -527,23 +515,32 @@ def auto_calibrate_crop(camera: Camera, config: AppConfig, config_path: str) -> 
     bbox_w = max(1, max_x - min_x)
     bbox_h = max(1, max_y - min_y)
 
-    if config.detector.calibrate_use_frame_margins:
-        left = int(frame_w * config.detector.calibrate_frame_margin_left)
-        right = int(frame_w * config.detector.calibrate_frame_margin_right)
-        top = int(frame_h * config.detector.calibrate_frame_margin_top)
-        bottom = int(frame_h * config.detector.calibrate_frame_margin_bottom)
-    else:
-        left = int(bbox_w * config.detector.calibrate_margin_left)
-        right = int(bbox_w * config.detector.calibrate_margin_right)
-        top = int(bbox_h * config.detector.calibrate_margin_top)
-        bottom = int(bbox_h * config.detector.calibrate_margin_bottom)
+    def compute_crop(use_frame_margins: bool) -> Tuple[int, int, int, int]:
+        if use_frame_margins:
+            left = int(frame_w * config.detector.calibrate_frame_margin_left)
+            right = int(frame_w * config.detector.calibrate_frame_margin_right)
+            top = int(frame_h * config.detector.calibrate_frame_margin_top)
+            bottom = int(frame_h * config.detector.calibrate_frame_margin_bottom)
+        else:
+            left = int(bbox_w * config.detector.calibrate_margin_left)
+            right = int(bbox_w * config.detector.calibrate_margin_right)
+            top = int(bbox_h * config.detector.calibrate_margin_top)
+            bottom = int(bbox_h * config.detector.calibrate_margin_bottom)
+        crop_x = max(0, min_x - left)
+        crop_y = max(0, min_y - top)
+        crop_x2 = min(frame_w, max_x + right)
+        crop_y2 = min(frame_h, max_y + bottom)
+        crop_w = max(1, crop_x2 - crop_x)
+        crop_h = max(1, crop_y2 - crop_y)
+        return crop_x, crop_y, crop_w, crop_h
 
-    crop_x = max(0, min_x - left)
-    crop_y = max(0, min_y - top)
-    crop_x2 = min(frame_w, max_x + right)
-    crop_y2 = min(frame_h, max_y + bottom)
-    crop_w = max(1, crop_x2 - crop_x)
-    crop_h = max(1, crop_y2 - crop_y)
+    crop_x, crop_y, crop_w, crop_h = compute_crop(config.detector.calibrate_use_frame_margins)
+    if config.detector.calibrate_use_frame_margins:
+        if crop_w >= int(frame_w * 0.98) or crop_h >= int(frame_h * 0.98):
+            logging.warning(
+                "Auto-calibrate: frame margins produced near-full-frame crop; falling back to bbox margins."
+            )
+            crop_x, crop_y, crop_w, crop_h = compute_crop(False)
 
     config.camera.crop.enabled = True
     config.camera.crop.x = int(crop_x)
