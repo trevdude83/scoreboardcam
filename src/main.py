@@ -543,6 +543,23 @@ def auto_calibrate_crop(camera: Camera, config: AppConfig, config_path: str) -> 
                 "Auto-calibrate: frame margins produced near-full-frame crop; falling back to bbox margins."
             )
             crop_x, crop_y, crop_w, crop_h = compute_crop(False)
+        else:
+            min_w = int(frame_w * 0.55)
+            min_h = int(frame_h * 0.35)
+            if crop_w < min_w or crop_h < min_h:
+                logging.warning(
+                    "Auto-calibrate: crop too small (w=%d h=%d); expanding to minimum frame fractions.",
+                    crop_w,
+                    crop_h,
+                )
+                target_w = max(crop_w, min_w)
+                target_h = max(crop_h, min_h)
+                expand_x = max(0, (target_w - crop_w) // 2)
+                expand_y = max(0, (target_h - crop_h) // 2)
+                crop_x = max(0, crop_x - expand_x)
+                crop_y = max(0, crop_y - expand_y)
+                crop_w = min(frame_w - crop_x, crop_w + expand_x * 2)
+                crop_h = min(frame_h - crop_y, crop_h + expand_y * 2)
 
     config.camera.crop.enabled = True
     config.camera.crop.x = int(crop_x)
