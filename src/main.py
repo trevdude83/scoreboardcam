@@ -446,7 +446,9 @@ def auto_calibrate_crop(camera: Camera, config: AppConfig, config_path: str) -> 
     if not config.detector.auto_calibrate:
         return
 
-    template_dir = Path(config.detector.template_dir)
+    template_dir = Path(config.detector.calibrate_template_dir)
+    if not template_dir.exists():
+        template_dir = Path(config.detector.template_dir)
     templates = _load_calibration_templates(template_dir)
     if not templates:
         logging.warning("Auto-calibrate skipped: no templates found in %s", template_dir)

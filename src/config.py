@@ -35,6 +35,7 @@ class DetectorConfig:
     model_path: str
     labels_path: str
     template_dir: str
+    calibrate_template_dir: str
     template_threshold: float
     template_min_matches: int
     template_scales: List[float]
@@ -211,6 +212,9 @@ def _parse_config(data: Dict[str, Any]) -> AppConfig:
         model_path=str(detector.get("modelPath", "models/scoreboard_detector.tflite")),
         labels_path=str(detector.get("labelsPath", "models/labels.txt")),
         template_dir=str(detector.get("templateDir", "models/templates")),
+        calibrate_template_dir=str(
+            detector.get("calibrateTemplateDir", "models/templates/calibration")
+        ),
         template_threshold=float(detector.get("templateThreshold", 0.8)),
         template_min_matches=int(detector.get("templateMinMatches", 3)),
         template_scales=template_scales,
